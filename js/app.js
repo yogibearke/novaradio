@@ -5,7 +5,7 @@
 import { favoritesManager } from './favorites.js';
 import { radioApi } from './radio-api.js';
 import { audioPlayer, PlaybackStatus } from './player.js';
-import { CastController } from './cast.js?v=6';
+import { CastController } from './cast.js?v=7';
 import { AudioVisualizer } from './visualizer.js';
 
 class App {
@@ -474,23 +474,39 @@ class App {
       }
     }
 
-    // Status tekst
+    // Speelknop laad-indicator (draaiende ring tijdens bufferen)
+    const playBtn = document.getElementById('btnPlayPause');
+    if (playBtn) {
+      playBtn.classList.toggle('is-loading', audioPlayer.status === PlaybackStatus.LOADING);
+    }
+
+    // Status tekst & duidelijke bufferindicatie
     if (statusBadge) {
+      const isCast = this.castController && this.castController.isConnected();
+      const castName = isCast ? (this.castController.getDeviceName() || 'Chromecast') : '';
+
       switch (audioPlayer.status) {
         case PlaybackStatus.PLAYING:
-          statusBadge.innerHTML = '<span class="pulse-dot"></span> Live Stream';
-          statusBadge.style.color = 'var(--accent-green)';
+          if (isCast) {
+            statusBadge.innerHTML = `<span class="pulse-dot" style="background: var(--secondary); box-shadow: 0 0 8px var(--secondary);"></span> Cast: ${castName}`;
+            statusBadge.style.color = 'var(--secondary)';
+          } else {
+            statusBadge.innerHTML = '<span class="pulse-dot"></span> Live Stream';
+            statusBadge.style.color = 'var(--accent-green)';
+          }
           break;
         case PlaybackStatus.LOADING:
-          statusBadge.innerHTML = 'Verbinden & bufferen...';
+          statusBadge.innerHTML = isCast
+            ? `<span class="pulse-dot" style="background: var(--secondary); box-shadow: 0 0 8px var(--secondary);"></span> Verbinden met ${castName}...`
+            : '<span class="pulse-dot" style="background: var(--secondary); box-shadow: 0 0 8px var(--secondary);"></span> Verbinden & bufferen...';
           statusBadge.style.color = 'var(--secondary)';
           break;
         case PlaybackStatus.PAUSED:
-          statusBadge.innerHTML = 'Gepauzeerd';
+          statusBadge.innerHTML = isCast ? `Gepauzeerd op ${castName}` : 'Gepauzeerd';
           statusBadge.style.color = 'var(--text-dim)';
           break;
         case PlaybackStatus.ERROR:
-          statusBadge.innerHTML = audioPlayer.errorMessage || 'Stream offline';
+          statusBadge.innerHTML = `⚠️ ${audioPlayer.errorMessage || 'Stream offline'}`;
           statusBadge.style.color = 'var(--accent-red)';
           break;
         default:
