@@ -1,0 +1,43 @@
+{
+  "name": "NovaRadio - Internet Radio & Cast",
+  "short_name": "NovaRadio",
+  "description": "Moderne internet radio met duizenden stations, favorieten, Chromecast en Android Auto ondersteuning.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0e17",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["music", "entertainment", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Favorieten",
+      "url": "./index.html#favorites",
+      "description": "Open direct je favoriete radiostations"
+    },
+    {
+      "name": "Ontdekken",
+      "url": "./index.html#discover",
+      "description": "Blader door meer dan 40.000 zenders wereldwijd"
+    }
+  ]
+}

@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="NovaRadio - Moderne internet radio speler met duizenden stations, favorieten, Chromecast en Android Auto ondersteuning.">
+  <meta name="theme-color" content="#07090e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NovaRadio">
+  
+  <title>NovaRadio - Internet Radio & Cast</title>
+
+  <!-- PWA & Icons -->
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+
+  <!-- Google Cast Web SDK -->
+  <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="./styles.css?v=2">
+</head>
+<body>
+
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="brand" id="brandBtn">
+      <div class="brand-icon">
+        <img src="./icons/icon.svg" alt="NovaRadio Logo" width="40" height="40">
+      </div>
+      <div class="brand-text">
+        <span class="brand-title">NovaRadio</span>
+        <span class="brand-badge"><span class="pulse-dot"></span> Live Stream</span>
+      </div>
+    </div>
+
+    <!-- Live Search Input -->
+    <div class="header-search">
+      <div class="search-input-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="searchInput" class="search-input" placeholder="Zoek op zendernaam, genre, land..." autocomplete="off">
+        <button id="searchClearBtn" class="search-clear" aria-label="Zoekopdracht wissen">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Header Actions (Cast, Sleep Timer, Add Station, Install PWA) -->
+    <div class="header-actions">
+      <!-- Cast knop (opent de officiële Google Cast apparaatkiezer) -->
+      <button id="headerCastBtn" class="btn-icon btn-cast" title="Casten" aria-label="Casten">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
+          <line x1="2" y1="20" x2="2.01" y2="20"></line>
+        </svg>
+      </button>
+
+      <button id="sleepTimerTriggerBtn" class="btn-icon" title="Slaaptimer instellen" aria-label="Slaaptimer">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+      </button>
+
+      <button id="addCustomStationBtn" class="btn-icon" title="Eigen stream URL toevoegen" aria-label="Eigen zender toevoegen">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </button>
+
+      <button id="pwaInstallBtn" class="btn-pwa-install" aria-label="Installeer app">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Installeer</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="app-container">
+    
+    <!-- Desktop Sidebar Navigation -->
+    <nav class="app-nav" aria-label="Zijbalk navigatie">
+      <button class="nav-link active" data-tab="favorites">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+        </svg>
+        <span>Favorieten</span>
+        <span class="nav-badge" id="favCountBadge">0</span>
+      </button>
+
+      <button class="nav-link" data-tab="discover">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        <span>Ontdekken & Gids</span>
+      </button>
+
+      <button class="nav-link" data-tab="recents">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <span>Recent Beluisterd</span>
+      </button>
+
+      <div class="nav-divider"></div>
+
+      <button class="nav-link" data-tab="settings">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        <span>Instellingen & Info</span>
+      </button>
+    </nav>
+
+    <!-- Main Content Panels -->
+    <main class="app-content">
+      
+      <!-- TAB 1: Favorieten (Startscherm) -->
+      <section id="favoritesView" class="view-section active">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h1 class="section-title">Mijn Favorieten</h1>
+          </div>
+          <button id="addFavShortcutBtn" class="btn-action" style="font-size: 0.8rem; padding: 0.45rem 1rem;">
+            + Zenders Ontdekken
+          </button>
+        </div>
+
+        <div id="favoritesList" class="stations-grid">
+          <!-- Dynamisch gegenereerd -->
+        </div>
+
+        <div id="favoritesEmptyState" class="empty-state" style="display: none;">
+          <div class="empty-state-icon">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+            </svg>
+          </div>
+          <h2 class="empty-state-title">Nog geen favorieten</h2>
+          <p class="empty-state-text">Klik op het hartje bij een zender in de gids om hem aan je startscherm toe te voegen.</p>
+          <button class="btn-action" data-tab="discover">Naar Zendergids</button>
+        </div>
+      </section>
+
+      <!-- TAB 2: Ontdekken & Gids -->
+      <section id="discoverView" class="view-section">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">Zendergids (40.000+ stations)</h1>
+            <p class="section-subtitle">Blader door 's werelds grootste open internet radio bibliotheek</p>
+          </div>
+        </div>
+
+        <!-- Landenfilter chips -->
+        <div class="filter-bar" id="countryChips">
+          <button class="chip active" data-country="BE">🇧🇪 België</button>
+          <button class="chip" data-country="NL">🇳🇱 Nederland</button>
+          <button class="chip" data-country="GB">🇬🇧 Verenigd Koninkrijk</button>
+          <button class="chip" data-country="DE">🇩🇪 Duitsland</button>
+          <button class="chip" data-country="FR">🇫🇷 Frankrijk</button>
+          <button class="chip" data-country="US">🇺🇸 Verenigde Staten</button>
+          <button class="chip" data-country="TOP">🔥 Wereldwijde Top</button>
+        </div>
+
+        <!-- Genre/Thema filter chips -->
+        <div class="filter-bar" id="genreChips">
+          <button class="chip active" data-genre="">Alle Genres</button>
+          <button class="chip" data-genre="pop">Pop</button>
+          <button class="chip" data-genre="rock">Rock</button>
+          <button class="chip" data-genre="80s">80s</button>
+          <button class="chip" data-genre="90s">90s</button>
+          <button class="chip" data-genre="news">Nieuws & Info</button>
+          <button class="chip" data-genre="jazz">Jazz</button>
+          <button class="chip" data-genre="classical">Klassiek</button>
+          <button class="chip" data-genre="dance">Dance & EDM</button>
+          <button class="chip" data-genre="lounge">Chill & Lounge</button>
+        </div>
+
+        <div id="discoverLoading" style="display: none; text-align: center; padding: 2rem;">
+          <div class="pulse-dot" style="width: 14px; height: 14px; margin: 0 auto 0.75rem;"></div>
+          <span style="color: var(--text-muted); font-size: 0.9rem;">Zenders ophalen...</span>
+        </div>
+
+        <div id="discoverList" class="stations-grid">
+          <!-- Dynamisch geladen via Radio Browser API -->
+        </div>
+      </section>
+
+      <!-- TAB 3: Recent Beluisterd -->
+      <section id="recentsView" class="view-section">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">Recent Beluisterd</h1>
+            <p class="section-subtitle">Snel terugschakelen naar stations die je pas hebt aangehad</p>
+          </div>
+        </div>
+
+        <div id="recentsList" class="stations-grid">
+          <!-- Dynamisch gegenereerd -->
+        </div>
+
+        <div id="recentsEmptyState" class="empty-state" style="display: none;">
+          <div class="empty-state-icon">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <h2 class="empty-state-title">Nog geen recente zenders</h2>
+          <p class="empty-state-text">Zodra je naar een radiozender luistert, verschijnt deze hier automatisch.</p>
+        </div>
+      </section>
+
+      <!-- TAB 4: Instellingen & Info -->
+      <section id="settingsView" class="view-section">
+        <div class="section-header">
+          <div>
+            <h1 class="section-title">Instellingen & Functies</h1>
+            <p class="section-subtitle">Optimaliseer je luisterervaring, Android Auto en back-up</p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+          <!-- Card: Android Auto & CarPlay info -->
+          <div class="station-card" style="cursor: default; flex-direction: column; align-items: flex-start; gap: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div class="empty-state-icon" style="width: 44px; height: 44px; margin: 0;">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                  <line x1="8" y1="21" x2="16" y2="21"></line>
+                  <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+              </div>
+              <div>
+                <h3 style="font-size: 1.05rem; font-weight: 700;">Android Auto & Stuurknoppen</h3>
+                <span style="font-size: 0.78rem; color: var(--accent-green);">Actief via Media Session API</span>
+              </div>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+              Wanneer je gsm verbonden is via kabel of Bluetooth in je auto, toont het autoscherm de zendernaam en logo.
+              Met de <strong>Vorige / Volgende stuurwielknoppen</strong> zap je direct door je favorietenlijst!
+            </p>
+          </div>
+
+          <!-- Card: Google Cast info -->
+          <div class="station-card" style="cursor: default; flex-direction: column; align-items: flex-start; gap: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div class="empty-state-icon" style="width: 44px; height: 44px; margin: 0; background: rgba(6, 182, 212, 0.15); color: var(--secondary);">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
+                  <line x1="2" y1="20" x2="2.01" y2="20"></line>
+                </svg>
+              </div>
+              <div>
+                <h3 style="font-size: 1.05rem; font-weight: 700;">Chromecast Ondersteuning</h3>
+                <span style="font-size: 0.78rem; color: var(--secondary);">Google Cast Web SDK</span>
+              </div>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+              Tik op het Google Cast icoontje rechtsboven om direct af te spelen op je Nest Audio, Google TV of Smart Speaker.
+            </p>
+          </div>
+
+          <!-- Card: Favorieten Backup Export/Import -->
+          <div class="station-card" style="cursor: default; flex-direction: column; align-items: flex-start; gap: 0.75rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 700;">Back-up van Favorieten</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">
+              Sla je favorieten op als bestand of importeer ze op een ander apparaat (bv. van pc naar gsm).
+            </p>
+            <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
+              <button id="exportFavsBtn" class="chip active">Exporteer JSON</button>
+              <button id="importFavsBtn" class="chip">Importeer JSON</button>
+              <input type="file" id="importFileInput" accept=".json" style="display: none;">
+            </div>
+          </div>
+
+          <!-- Card: Herstel Standaard Favorieten -->
+          <div class="station-card" style="cursor: default; flex-direction: column; align-items: flex-start; gap: 0.75rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 700;">Standaard Zenders Herstellen</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">
+              Zet de populaire Belgische en Nederlandse radiostations terug in je favorietenlijst.
+            </p>
+            <button id="resetPresetsBtn" class="chip" style="margin-top: 0.5rem; color: var(--accent-pink);">
+              Herstel Presets (Stubru, Radio 1, Qmusic, 538...)
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Persistent Bottom Player Bar -->
+  <footer class="player-bar" aria-label="Audiospeler">
+    
+    <!-- Player Left: Station info -->
+    <div class="player-station-info">
+      <div class="player-thumb-wrap">
+        <img id="playerThumb" class="player-thumb" src="./icons/icon.svg" alt="Zender Artwork">
+      </div>
+      <div class="player-meta">
+        <div id="playerName" class="player-name">Selecteer een zender</div>
+        <div id="playerSub" class="player-sub">
+          <span id="playerStatusBadge">Klaar om te spelen</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Player Center: Playback Controls & Equalizer Visualizer -->
+    <div class="player-center-controls">
+      <div class="player-buttons">
+        <button id="btnPrevStation" class="btn-ctrl" title="Vorige favoriet" aria-label="Vorige zender">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+            <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"></path>
+          </svg>
+        </button>
+
+        <button id="btnPlayPause" class="btn-ctrl-play" title="Afspelen / Pauzeren" aria-label="Afspelen of Pauzeren">
+          <svg id="playIcon" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+            <path d="M8 5v14l11-7z"></path>
+          </svg>
+          <svg id="pauseIcon" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style="display: none;">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path>
+          </svg>
+        </button>
+
+        <button id="btnNextStation" class="btn-ctrl" title="Volgende favoriet" aria-label="Volgende zender">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Live Neon Equalizer Canvas -->
+      <canvas id="visualizerCanvas" class="visualizer-canvas"></canvas>
+    </div>
+
+    <!-- Player Right: Active Cast, Slaaptimer, Favorite & Volume -->
+    <div class="player-right-actions">
+      <!-- Cast banner -->
+      <div id="castActiveBadge" class="cast-device-banner">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
+        </svg>
+        <span id="castDeviceName">Cast</span>
+      </div>
+
+      <!-- Slaaptimer indicator -->
+      <div id="sleepBadge" class="sleep-timer-badge">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <span id="sleepTimerText">30m</span>
+      </div>
+
+      <!-- Cast knop op de spelerbalk -->
+      <button id="playerCastBtn" class="btn-ctrl btn-cast" title="Cast naar Chromecast of Smart TV" aria-label="Casten">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
+          <line x1="2" y1="20" x2="2.01" y2="20"></line>
+        </svg>
+      </button>
+
+      <!-- Favorite toggle on current station -->
+      <button id="btnPlayerFav" class="btn-ctrl" title="Aan favorieten toevoegen" aria-label="Favoriet markeren">
+        <svg id="playerFavIcon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+        </svg>
+      </button>
+
+      <!-- Volume control -->
+      <div class="volume-control">
+        <button id="btnMute" class="btn-ctrl" aria-label="Geluid dempen">
+          <svg id="volumeIcon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        </button>
+        <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.01" value="0.85" aria-label="Volumeregelaar">
+      </div>
+    </div>
+  </footer>
+
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav class="mobile-bottom-nav" aria-label="Mobiele navigatie">
+    <div class="mobile-nav-item active" data-tab="favorites">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+      </svg>
+      <span>Favorieten</span>
+    </div>
+    <div class="mobile-nav-item" data-tab="discover">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="2" y1="12" x2="22" y2="12"></line>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+      </svg>
+      <span>Gids</span>
+    </div>
+    <div class="mobile-nav-item" data-tab="recents">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+      <span>Recent</span>
+    </div>
+    <div class="mobile-nav-item" data-tab="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+      <span>Instellingen</span>
+    </div>
+  </nav>
+
+  <!-- Modal: Slaaptimer -->
+  <div id="sleepModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Slaaptimer instellen</h3>
+        <button class="modal-close" id="closeSleepModalBtn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.88rem; color: var(--text-muted);">
+          Stopt automatisch met afspelen na de gekozen tijd. Ideaal voor het slapengaan.
+        </p>
+        <div class="timer-options">
+          <button class="timer-btn" data-time="15">15 min</button>
+          <button class="timer-btn" data-time="30">30 min</button>
+          <button class="timer-btn" data-time="45">45 min</button>
+          <button class="timer-btn" data-time="60">60 min</button>
+        </div>
+        <button id="cancelTimerBtn" class="chip" style="margin-top: 0.5rem; justify-content: center; color: var(--accent-red);">
+          Timer Uitschakelen
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Custom Station toevoegen -->
+  <div id="customStationModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Eigen Radiozender Toevoegen</h3>
+        <button class="modal-close" id="closeCustomModalBtn">&times;</button>
+      </div>
+      <form id="customStationForm" class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="customName">Zendernaam *</label>
+          <input type="text" id="customName" class="form-input" placeholder="Bijv. Lokale Omroep FM" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="customUrl">Live Stream URL (MP3/AAC) *</label>
+          <input type="url" id="customUrl" class="form-input" placeholder="https://stream.example.com/radio.mp3" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="customLogo">Logo / Afbeelding URL (optioneel)</label>
+          <input type="url" id="customLogo" class="form-input" placeholder="https://example.com/logo.png">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="customGenre">Genre / Tags (optioneel)</label>
+          <input type="text" id="customGenre" class="form-input" placeholder="Pop, Nieuws, Lokaal">
+        </div>
+        <button type="submit" class="btn-action" style="margin-top: 0.5rem;">Toevoegen aan Favorieten</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Layer -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Main Application Entry Script -->
+  <script type="module" src="./js/app.js?v=6"></script>
+
+</body>
+</html>

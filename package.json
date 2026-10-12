@@ -1,0 +1,12 @@
+{
+  "name": "novaradio",
+  "version": "1.0.0",
+  "description": "Moderne internet radio PWA met favorieten, Chromecast en Android Auto ondersteuning",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["radio", "pwa", "chromecast", "android-auto", "webradio"],
+  "author": "Ivo",
+  "license": "MIT"
+}
