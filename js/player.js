@@ -37,8 +37,24 @@ export class AudioPlayer {
     // Cast integratie callback
     this.castController = null;
 
+    this.currentStation = this.getLastStation();
+
     this.setupAudioListeners();
     this.setupMediaSession();
+  }
+
+  getLastStation() {
+    try {
+      const saved = localStorage.getItem('novaradio_last_station');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn(e);
+    }
+    const recents = favoritesManager.getRecents();
+    if (recents && recents.length > 0) return recents[0];
+    const favs = favoritesManager.getFavorites();
+    if (favs && favs.length > 0) return favs[0];
+    return null;
   }
 
   setupAudioListeners() {
@@ -111,7 +127,10 @@ export class AudioPlayer {
     this.retryCount = 0;
     this.setStatus(PlaybackStatus.LOADING);
 
-    // Voeg toe aan recents en registreer klik
+    // Voeg toe aan recents, bewaar als laatst gespeeld en registreer klik
+    try {
+      localStorage.setItem('novaradio_last_station', JSON.stringify(station));
+    } catch (e) { console.warn(e); }
     favoritesManager.addRecent(station);
     radioApi.recordClick(station.stationuuid);
     this.updateMediaSession(station);

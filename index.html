@@ -20,7 +20,7 @@
   <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="./styles.css?v=3">
+  <link rel="stylesheet" href="./styles.css?v=4">
 </head>
 <body>
 
@@ -484,11 +484,148 @@
     </div>
   </div>
 
+  <!-- Fullscreen Now-Playing Hero View (Mobiel & Tablet) -->
+  <div id="nowPlayingView" class="now-playing-fullscreen">
+    <div class="now-playing-header">
+      <button id="closeNowPlayingBtn" class="btn-icon" aria-label="Sluit volledig scherm" title="Minimaliseren">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
+      <div class="now-playing-title-wrap">
+        <span class="now-playing-badge">NU AAN HET SPELEN</span>
+      </div>
+      <button id="heroFavBtn" class="btn-icon" aria-label="Favoriet" title="Aan favorieten toevoegen">
+        <svg id="heroFavIcon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+        </svg>
+      </button>
+    </div>
+
+    <div class="now-playing-body">
+      <!-- Grote Artwork / Badge met live glow -->
+      <div class="hero-artwork-wrap">
+        <div class="hero-glow-backdrop"></div>
+        <img id="heroArtwork" class="hero-artwork" src="./icons/icon.svg" alt="Station Artwork">
+      </div>
+
+      <!-- Zender Info -->
+      <div class="hero-station-info">
+        <h1 id="heroStationName" class="hero-station-title">Selecteer een zender</h1>
+        <div id="heroStationSub" class="hero-station-sub">Live Internet Radio</div>
+        <div id="heroStatusBadge" class="hero-status-pill">
+          <span class="pulse-dot"></span> Live Stream
+        </div>
+      </div>
+
+      <!-- Audio Output Selector Knop -->
+      <button id="btnOpenOutputPicker" class="hero-output-btn" aria-label="Afspeelapparaat kiezen">
+        <div class="hero-output-left">
+          <svg id="heroOutputIcon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+          </svg>
+          <div class="hero-output-text">
+            <span class="hero-output-label">AFSPEELAPPARAAT</span>
+            <span id="heroOutputName" class="hero-output-val">Deze telefoon</span>
+          </div>
+        </div>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+
+      <!-- Grote Touch Controls -->
+      <div class="hero-controls">
+        <button id="heroPrevBtn" class="hero-btn-skip" aria-label="Vorige zender" title="Vorige favoriet">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+            <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"></path>
+          </svg>
+        </button>
+
+        <button id="heroPlayBtn" class="hero-btn-play" aria-label="Afspelen of Pauzeren" title="Afspelen/Pauzeren">
+          <svg id="heroPlayIcon" viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
+            <path d="M8 5v14l11-7z"></path>
+          </svg>
+          <svg id="heroPauseIcon" viewBox="0 0 24 24" width="32" height="32" fill="currentColor" style="display: none;">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path>
+          </svg>
+        </button>
+
+        <button id="heroNextBtn" class="hero-btn-skip" aria-label="Volgende zender" title="Volgende favoriet">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Quick Action: Naar zenders / favorieten -->
+      <button id="heroBrowseBtn" class="hero-browse-btn" aria-label="Bekijk alle zenders">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>Blader door alle zenders</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal: Audio Output / Afspeelapparaat Selector -->
+  <div id="outputPickerModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Afspeelapparaat Kiezen</h3>
+        <button class="modal-close" id="closeOutputModalBtn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Kies waar je naar NovaRadio wilt luisteren:
+        </p>
+        <div class="output-options-list">
+          <!-- Optie 1: Lokaal -->
+          <button id="outputOptionLocal" class="output-option-item is-active">
+            <div class="output-option-icon">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                <line x1="12" y1="18" x2="12.01" y2="18"></line>
+              </svg>
+            </div>
+            <div class="output-option-info">
+              <span class="output-option-title">Deze telefoon / computer</span>
+              <span class="output-option-sub">Lokaal afspelen via speakers of koptelefoon</span>
+            </div>
+            <span id="outputLocalBadge" class="output-status-tag">Actief</span>
+          </button>
+
+          <!-- Optie 2: Google Cast -->
+          <button id="outputOptionCast" class="output-option-item">
+            <div class="output-option-icon">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
+                <line x1="2" y1="20" x2="2.01" y2="20"></line>
+              </svg>
+            </div>
+            <div class="output-option-info">
+              <span id="outputCastTitle" class="output-option-title">Google Cast (Chromecast / Nest)</span>
+              <span id="outputCastSub" class="output-option-sub">Draadloos streamen naar smart speaker of tv</span>
+            </div>
+            <span id="outputCastBadge" class="output-status-tag">Verbinden</span>
+          </button>
+        </div>
+
+        <button id="disconnectCastBtn" class="chip" style="margin-top: 1rem; width: 100%; justify-content: center; display: none; color: var(--accent-red);">
+          Cast-verbinding verbreken
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Layer -->
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Main Application Entry Script -->
-  <script type="module" src="./js/app.js?v=7"></script>
+  <script type="module" src="./js/app.js?v=8"></script>
 
 </body>
 </html>

@@ -157,13 +157,36 @@ export class CastController {
     return session ? session.getCastDevice().friendlyName : '';
   }
 
-  loadMedia(station) {
+  disconnect() {
+    if (this.context && this.isConnected()) {
+      this.context.endCurrentSession(true);
+    }
+  }
+
+  async loadMedia(station) {
     const session = this.context && this.context.getCurrentSession();
     if (!session || !station) return;
     const { chrome } = window;
 
+    this.player.setStatus(PlaybackStatus.LOADING);
+
+    // 1. Schone stop van eerdere actieve stream op de Chromecast
+    try {
+      const activeMedia = session.getMediaSession();
+      if (activeMedia) {
+        console.log('Eerdere Cast-stream netjes stoppen voor wissel...');
+        await new Promise((resolve) => {
+          activeMedia.stop(null, () => resolve(), () => resolve());
+          setTimeout(resolve, 250);
+        });
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    } catch (e) {
+      console.log('Geen actieve media om te stoppen:', e);
+    }
+
     const mimeType = getStreamMimeType(station);
-    console.log(`Laden op Cast (${station.name}): ${station.url_resolved} [${mimeType}]`);
+    console.log(`Schone stream starten op Cast (${station.name}): ${station.url_resolved} [${mimeType}]`);
 
     const mediaInfo = new chrome.cast.media.MediaInfo(station.url_resolved, mimeType);
     mediaInfo.streamType = chrome.cast.media.StreamType.LIVE;
@@ -179,7 +202,6 @@ export class CastController {
     const request = new chrome.cast.media.LoadRequest(mediaInfo);
     request.autoplay = true;
 
-    this.player.setStatus(PlaybackStatus.LOADING);
     session.loadMedia(request).then(
       () => {
         this.player.setStatus(PlaybackStatus.PLAYING);

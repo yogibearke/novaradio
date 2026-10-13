@@ -5,7 +5,7 @@
 import { favoritesManager } from './favorites.js';
 import { radioApi } from './radio-api.js';
 import { audioPlayer, PlaybackStatus } from './player.js';
-import { CastController } from './cast.js?v=7';
+import { CastController } from './cast.js?v=8';
 import { AudioVisualizer } from './visualizer.js';
 
 class App {
@@ -26,12 +26,15 @@ class App {
   init() {
     this.setupVisualizer();
     this.bindDomEvents();
+    this.bindNowPlayingEvents();
     this.subscribeToManagers();
     this.renderFavorites();
     this.renderRecents();
     this.loadDiscoverStations();
     this.registerServiceWorker();
     this.setupPwaInstall();
+    this.updatePlayerUI();
+    this.checkMobileAutoOpenNowPlaying();
   }
 
   setupVisualizer() {
@@ -259,6 +262,198 @@ class App {
     document.getElementById('addFavShortcutBtn')?.addEventListener('click', () => {
       this.switchTab('discover');
     });
+  }
+
+  bindNowPlayingEvents() {
+    // Tikken op minispeler (zenderinfo) opent fullscreen Now-Playing scherm
+    document.querySelector('.player-station-info')?.addEventListener('click', () => {
+      this.openNowPlayingView();
+    });
+
+    // Sluitknoppen Now-Playing
+    document.getElementById('closeNowPlayingBtn')?.addEventListener('click', () => {
+      this.closeNowPlayingView();
+    });
+    document.getElementById('heroBrowseBtn')?.addEventListener('click', () => {
+      this.closeNowPlayingView();
+      this.switchTab('favorites');
+    });
+
+    // Hero spelerbediening
+    document.getElementById('heroPlayBtn')?.addEventListener('click', () => {
+      audioPlayer.togglePlay();
+    });
+    document.getElementById('heroPrevBtn')?.addEventListener('click', () => {
+      audioPlayer.playPreviousFavorite();
+    });
+    document.getElementById('heroNextBtn')?.addEventListener('click', () => {
+      audioPlayer.playNextFavorite();
+    });
+    document.getElementById('heroFavBtn')?.addEventListener('click', () => {
+      if (audioPlayer.currentStation) {
+        const isNowFav = favoritesManager.toggleFavorite(audioPlayer.currentStation);
+        this.showToast(isNowFav ? 'Toegevoegd aan favorieten' : 'Verwijderd uit favorieten');
+      }
+    });
+
+    // Audio Output Picker Modal
+    const outputModal = document.getElementById('outputPickerModal');
+    document.getElementById('btnOpenOutputPicker')?.addEventListener('click', () => {
+      outputModal?.classList.add('open');
+      this.updateNowPlayingUI();
+    });
+    document.getElementById('closeOutputModalBtn')?.addEventListener('click', () => {
+      outputModal?.classList.remove('open');
+    });
+
+    // Optie 1: Lokaal afspelen (deze telefoon / computer)
+    document.getElementById('outputOptionLocal')?.addEventListener('click', () => {
+      if (this.castController && this.castController.isConnected()) {
+        this.castController.disconnect();
+        this.showToast('Cast verbroken: lokaal hervat op deze telefoon');
+      } else {
+        if (audioPlayer.currentStation && audioPlayer.status !== PlaybackStatus.PLAYING) {
+          audioPlayer.audio.play().catch(e => console.warn(e));
+        }
+      }
+      outputModal?.classList.remove('open');
+      this.updateNowPlayingUI();
+    });
+
+    // Optie 2: Cast (Chromecast / Nest)
+    document.getElementById('outputOptionCast')?.addEventListener('click', () => {
+      outputModal?.classList.remove('open');
+      this.castController.requestSession();
+    });
+
+    // Disconnect knop in Output Modal
+    document.getElementById('disconnectCastBtn')?.addEventListener('click', () => {
+      if (this.castController && this.castController.isConnected()) {
+        this.castController.disconnect();
+        this.showToast('Cast-verbinding verbroken');
+      }
+      outputModal?.classList.remove('open');
+      this.updateNowPlayingUI();
+    });
+  }
+
+  checkMobileAutoOpenNowPlaying() {
+    // Op smartphones (<= 768px): automatisch het Fullscreen Now-Playing scherm openen met de laatst beluisterde zender
+    if (window.innerWidth <= 768 && audioPlayer.currentStation) {
+      setTimeout(() => this.openNowPlayingView(), 100);
+    }
+  }
+
+  openNowPlayingView() {
+    const view = document.getElementById('nowPlayingView');
+    if (view) {
+      view.classList.add('is-open');
+      this.updateNowPlayingUI();
+    }
+  }
+
+  closeNowPlayingView() {
+    const view = document.getElementById('nowPlayingView');
+    if (view) {
+      view.classList.remove('is-open');
+    }
+  }
+
+  updateNowPlayingUI() {
+    const station = audioPlayer.currentStation;
+    const isPlaying = audioPlayer.status === PlaybackStatus.PLAYING;
+    const isLoading = audioPlayer.status === PlaybackStatus.LOADING;
+    const isCast = this.castController && this.castController.isConnected();
+    const castName = isCast ? (this.castController.getDeviceName() || 'Chromecast') : '';
+
+    const heroArtwork = document.getElementById('heroArtwork');
+    const heroTitle = document.getElementById('heroStationName');
+    const heroSub = document.getElementById('heroStationSub');
+    const heroStatusBadge = document.getElementById('heroStatusBadge');
+    const heroPlayIcon = document.getElementById('heroPlayIcon');
+    const heroPauseIcon = document.getElementById('heroPauseIcon');
+    const heroPlayBtn = document.getElementById('heroPlayBtn');
+    const heroOutputName = document.getElementById('heroOutputName');
+    const heroOutputIcon = document.getElementById('heroOutputIcon');
+
+    if (station) {
+      if (heroTitle) heroTitle.textContent = station.name;
+      if (heroSub) {
+        heroSub.textContent = `${station.country || 'Live'} • ${station.codec || 'MP3'} ${station.bitrate ? station.bitrate + ' kbps' : ''}`;
+      }
+      const defaultIcon = './icons/icon.svg';
+      if (heroArtwork) {
+        heroArtwork.src = (station.favicon && station.favicon.startsWith('http')) ? station.favicon : defaultIcon;
+        heroArtwork.onerror = () => { heroArtwork.src = defaultIcon; };
+      }
+    }
+
+    if (heroPlayIcon && heroPauseIcon) {
+      heroPlayIcon.style.display = isPlaying ? 'none' : 'block';
+      heroPauseIcon.style.display = isPlaying ? 'block' : 'none';
+    }
+
+    if (heroPlayBtn) {
+      heroPlayBtn.classList.toggle('is-loading', isLoading);
+    }
+
+    if (heroStatusBadge) {
+      switch (audioPlayer.status) {
+        case PlaybackStatus.PLAYING:
+          if (isCast) {
+            heroStatusBadge.innerHTML = `<span class="pulse-dot" style="background: var(--secondary); box-shadow: 0 0 8px var(--secondary);"></span> Cast: ${castName}`;
+            heroStatusBadge.style.color = 'var(--secondary)';
+          } else {
+            heroStatusBadge.innerHTML = '<span class="pulse-dot"></span> Live Stream';
+            heroStatusBadge.style.color = 'var(--accent-green)';
+          }
+          break;
+        case PlaybackStatus.LOADING:
+          heroStatusBadge.innerHTML = isCast
+            ? `<span class="pulse-dot" style="background: var(--secondary); box-shadow: 0 0 8px var(--secondary);"></span> Verbinden met ${castName}...`
+            : '<span class="pulse-dot" style="background: var(--secondary); box-shadow: 0 0 8px var(--secondary);"></span> Verbinden & bufferen...';
+          heroStatusBadge.style.color = 'var(--secondary)';
+          break;
+        case PlaybackStatus.PAUSED:
+          heroStatusBadge.innerHTML = isCast ? `Gepauzeerd op ${castName}` : 'Gepauzeerd';
+          heroStatusBadge.style.color = 'var(--text-dim)';
+          break;
+        case PlaybackStatus.ERROR:
+          heroStatusBadge.innerHTML = `⚠️ ${audioPlayer.errorMessage || 'Stream offline'}`;
+          heroStatusBadge.style.color = 'var(--accent-red)';
+          break;
+        default:
+          heroStatusBadge.innerHTML = 'Klaar om te spelen';
+          heroStatusBadge.style.color = 'var(--text-dim)';
+      }
+    }
+
+    // Output selector weergave
+    if (heroOutputName) {
+      heroOutputName.textContent = isCast ? castName : 'Deze telefoon / computer';
+    }
+    if (heroOutputIcon) {
+      if (isCast) {
+        heroOutputIcon.innerHTML = '<path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path><line x1="2" y1="20" x2="2.01" y2="20"></line>';
+      } else {
+        heroOutputIcon.innerHTML = '<rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line>';
+      }
+    }
+
+    // Output Modal Status
+    const optLocal = document.getElementById('outputOptionLocal');
+    const optCast = document.getElementById('outputOptionCast');
+    const localBadge = document.getElementById('outputLocalBadge');
+    const castBadge = document.getElementById('outputCastBadge');
+    const castTitle = document.getElementById('outputCastTitle');
+    const disconnectBtn = document.getElementById('disconnectCastBtn');
+
+    if (optLocal) optLocal.classList.toggle('is-active', !isCast);
+    if (optCast) optCast.classList.toggle('is-active', isCast);
+    if (localBadge) localBadge.textContent = !isCast ? 'Actief' : 'Kiezen';
+    if (castBadge) castBadge.textContent = isCast ? 'Actief' : 'Verbinden';
+    if (castTitle) castTitle.textContent = isCast ? `Verbonden: ${castName}` : 'Google Cast (Chromecast / Nest)';
+    if (disconnectBtn) disconnectBtn.style.display = isCast ? 'flex' : 'none';
   }
 
   switchTab(tabId) {
@@ -531,17 +726,25 @@ class App {
     }
 
     this.updatePlayerFavState();
+    this.updateNowPlayingUI();
   }
 
   updatePlayerFavState() {
     const btn = document.getElementById('btnPlayerFav');
     const svg = document.getElementById('playerFavIcon');
-    if (!btn || !svg || !audioPlayer.currentStation) return;
+    const heroFav = document.getElementById('heroFavIcon');
+    if (!audioPlayer.currentStation) return;
 
     const id = audioPlayer.currentStation.stationuuid || audioPlayer.currentStation.url_resolved;
     const isFav = favoritesManager.isFavorite(id);
-    svg.setAttribute('fill', isFav ? 'var(--accent-pink)' : 'none');
-    svg.setAttribute('stroke', isFav ? 'var(--accent-pink)' : 'currentColor');
+    if (svg) {
+      svg.setAttribute('fill', isFav ? 'var(--accent-pink)' : 'none');
+      svg.setAttribute('stroke', isFav ? 'var(--accent-pink)' : 'currentColor');
+    }
+    if (heroFav) {
+      heroFav.setAttribute('fill', isFav ? 'var(--accent-pink)' : 'none');
+      heroFav.setAttribute('stroke', isFav ? 'var(--accent-pink)' : 'currentColor');
+    }
   }
 
   updateActiveCardHighlights() {
@@ -577,14 +780,16 @@ class App {
         : noDevices ? 'Geen Cast-apparaten gevonden' : 'Casten naar een apparaat';
     });
 
-    if (!badge || !nameEl) return;
-
-    if (isConnected) {
-      badge.classList.add('active');
-      nameEl.textContent = this.castController.getDeviceName();
-    } else {
-      badge.classList.remove('active');
+    if (badge && nameEl) {
+      if (isConnected) {
+        badge.classList.add('active');
+        nameEl.textContent = this.castController.getDeviceName();
+      } else {
+        badge.classList.remove('active');
+      }
     }
+
+    this.updateNowPlayingUI();
   }
 
   // --- PWA & SERVICE WORKER ---
