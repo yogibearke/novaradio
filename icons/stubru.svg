@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="stubruGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF1A2A"/>
+      <stop offset="100%" stop-color="#C00010"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <!-- Rounded Box -->
+  <rect width="512" height="512" rx="112" fill="url(#stubruGrad)"/>
+  
+  <!-- StuBru Iconic Bold Typography -->
+  <g fill="#FFFFFF" filter="url(#shadow)" font-family="system-ui, -apple-system, 'Impact', 'Arial Black', sans-serif" font-weight="900" font-size="160" text-anchor="middle" letter-spacing="-4">
+    <text x="256" y="240">STU</text>
+    <text x="256" y="385">BRU</text>
+  </g>
+  <circle cx="430" cy="82" r="16" fill="#FFFFFF" opacity="0.8"/>
+</svg>

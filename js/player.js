@@ -2,7 +2,7 @@
  * player.js - Audio playback engine, Media Session API (Android Auto & Vergrendelscherm) & Sleep Timer
  */
 
-import { favoritesManager } from './favorites.js';
+import { favoritesManager, normalizeStation } from './favorites.js';
 import { radioApi } from './radio-api.js';
 
 export const PlaybackStatus = {
@@ -46,14 +46,14 @@ export class AudioPlayer {
   getLastStation() {
     try {
       const saved = localStorage.getItem('novaradio_last_station');
-      if (saved) return JSON.parse(saved);
+      if (saved) return normalizeStation(JSON.parse(saved));
     } catch (e) {
       console.warn(e);
     }
     const recents = favoritesManager.getRecents();
-    if (recents && recents.length > 0) return recents[0];
+    if (recents && recents.length > 0) return normalizeStation(recents[0]);
     const favs = favoritesManager.getFavorites();
-    if (favs && favs.length > 0) return favs[0];
+    if (favs && favs.length > 0) return normalizeStation(favs[0]);
     return null;
   }
 
@@ -110,6 +110,7 @@ export class AudioPlayer {
 
   async playStation(station) {
     if (!station || !station.url_resolved) return;
+    station = normalizeStation(station);
 
     // Als we al verbonden zijn met Chromecast, stuur het naar Cast!
     if (this.castController && this.castController.isConnected()) {

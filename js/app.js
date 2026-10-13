@@ -2,7 +2,7 @@
  * app.js - Hoofdcontroller voor NovaRadio
  */
 
-import { favoritesManager } from './favorites.js';
+import { favoritesManager, normalizeStation } from './favorites.js';
 import { radioApi } from './radio-api.js';
 import { audioPlayer, PlaybackStatus } from './player.js';
 import { CastController } from './cast.js?v=8';
@@ -296,44 +296,14 @@ class App {
       }
     });
 
-    // Audio Output Picker Modal
-    const outputModal = document.getElementById('outputPickerModal');
-    document.getElementById('btnOpenOutputPicker')?.addEventListener('click', () => {
-      outputModal?.classList.add('open');
-      this.updateNowPlayingUI();
-    });
-    document.getElementById('closeOutputModalBtn')?.addEventListener('click', () => {
-      outputModal?.classList.remove('open');
-    });
-
-    // Optie 1: Lokaal afspelen (deze telefoon / computer)
-    document.getElementById('outputOptionLocal')?.addEventListener('click', () => {
+    // Directe Google Cast knop op Now-Playing
+    document.getElementById('heroCastBtn')?.addEventListener('click', () => {
       if (this.castController && this.castController.isConnected()) {
         this.castController.disconnect();
-        this.showToast('Cast verbroken: lokaal hervat op deze telefoon');
+        this.showToast('Cast-verbinding verbroken: lokaal hervat');
       } else {
-        if (audioPlayer.currentStation && audioPlayer.status !== PlaybackStatus.PLAYING) {
-          audioPlayer.audio.play().catch(e => console.warn(e));
-        }
+        this.castController.requestSession();
       }
-      outputModal?.classList.remove('open');
-      this.updateNowPlayingUI();
-    });
-
-    // Optie 2: Cast (Chromecast / Nest)
-    document.getElementById('outputOptionCast')?.addEventListener('click', () => {
-      outputModal?.classList.remove('open');
-      this.castController.requestSession();
-    });
-
-    // Disconnect knop in Output Modal
-    document.getElementById('disconnectCastBtn')?.addEventListener('click', () => {
-      if (this.castController && this.castController.isConnected()) {
-        this.castController.disconnect();
-        this.showToast('Cast-verbinding verbroken');
-      }
-      outputModal?.classList.remove('open');
-      this.updateNowPlayingUI();
     });
   }
 
@@ -360,7 +330,7 @@ class App {
   }
 
   updateNowPlayingUI() {
-    const station = audioPlayer.currentStation;
+    const station = normalizeStation(audioPlayer.currentStation);
     const isPlaying = audioPlayer.status === PlaybackStatus.PLAYING;
     const isLoading = audioPlayer.status === PlaybackStatus.LOADING;
     const isCast = this.castController && this.castController.isConnected();
@@ -373,8 +343,7 @@ class App {
     const heroPlayIcon = document.getElementById('heroPlayIcon');
     const heroPauseIcon = document.getElementById('heroPauseIcon');
     const heroPlayBtn = document.getElementById('heroPlayBtn');
-    const heroOutputName = document.getElementById('heroOutputName');
-    const heroOutputIcon = document.getElementById('heroOutputIcon');
+    const heroCastBtn = document.getElementById('heroCastBtn');
 
     if (station) {
       if (heroTitle) heroTitle.textContent = station.name;
@@ -382,8 +351,9 @@ class App {
         heroSub.textContent = `${station.country || 'Live'} • ${station.codec || 'MP3'} ${station.bitrate ? station.bitrate + ' kbps' : ''}`;
       }
       const defaultIcon = './icons/icon.svg';
+      const artUrl = this.formatArtworkUrl(station.favicon) || defaultIcon;
       if (heroArtwork) {
-        heroArtwork.src = (station.favicon && station.favicon.startsWith('http')) ? station.favicon : defaultIcon;
+        heroArtwork.src = artUrl;
         heroArtwork.onerror = () => { heroArtwork.src = defaultIcon; };
       }
     }
@@ -395,6 +365,13 @@ class App {
 
     if (heroPlayBtn) {
       heroPlayBtn.classList.toggle('is-loading', isLoading);
+    }
+
+    if (heroCastBtn) {
+      heroCastBtn.classList.toggle('is-connected', isCast);
+      heroCastBtn.title = isCast
+        ? `Casten naar ${castName} (klik om te stoppen)`
+        : 'Cast naar Chromecast of TV';
     }
 
     if (heroStatusBadge) {
@@ -427,33 +404,6 @@ class App {
           heroStatusBadge.style.color = 'var(--text-dim)';
       }
     }
-
-    // Output selector weergave
-    if (heroOutputName) {
-      heroOutputName.textContent = isCast ? castName : 'Deze telefoon / computer';
-    }
-    if (heroOutputIcon) {
-      if (isCast) {
-        heroOutputIcon.innerHTML = '<path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path><line x1="2" y1="20" x2="2.01" y2="20"></line>';
-      } else {
-        heroOutputIcon.innerHTML = '<rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line>';
-      }
-    }
-
-    // Output Modal Status
-    const optLocal = document.getElementById('outputOptionLocal');
-    const optCast = document.getElementById('outputOptionCast');
-    const localBadge = document.getElementById('outputLocalBadge');
-    const castBadge = document.getElementById('outputCastBadge');
-    const castTitle = document.getElementById('outputCastTitle');
-    const disconnectBtn = document.getElementById('disconnectCastBtn');
-
-    if (optLocal) optLocal.classList.toggle('is-active', !isCast);
-    if (optCast) optCast.classList.toggle('is-active', isCast);
-    if (localBadge) localBadge.textContent = !isCast ? 'Actief' : 'Kiezen';
-    if (castBadge) castBadge.textContent = isCast ? 'Actief' : 'Verbinden';
-    if (castTitle) castTitle.textContent = isCast ? `Verbonden: ${castName}` : 'Google Cast (Chromecast / Nest)';
-    if (disconnectBtn) disconnectBtn.style.display = isCast ? 'flex' : 'none';
   }
 
   switchTab(tabId) {
@@ -480,8 +430,21 @@ class App {
     }
   }
 
+  // --- HELPER: VEILIGE & GEOPTIMALISEERDE ARTWORK PIPELINE ---
+  formatArtworkUrl(favicon) {
+    if (!favicon) return '';
+    // Lokale icons behouden (bijv. ./icons/stubru.svg)
+    if (favicon.startsWith('./') || favicon.startsWith('/')) return favicon;
+    // Externe HTTP/HTTPS afbeeldingen routeren via wsrv.nl proxy (geforceerd HTTPS, CORS, caching & webp)
+    if (favicon.startsWith('http://') || favicon.startsWith('https://')) {
+      return `https://wsrv.nl/?url=${encodeURIComponent(favicon)}&w=160&h=160&fit=cover&output=webp`;
+    }
+    return favicon;
+  }
+
   // --- RENDERING VAN KAARTEN ---
   createStationCard(station) {
+    station = normalizeStation(station);
     const card = document.createElement('div');
     card.className = 'station-card';
     const stationId = station.stationuuid || station.url_resolved;
@@ -494,15 +457,17 @@ class App {
     }
 
     const isFav = favoritesManager.isFavorite(stationId);
-    const hasFavicon = station.favicon && station.favicon.startsWith('http');
+    const hasFavicon = !!station.favicon;
+    const artUrl = this.formatArtworkUrl(station.favicon);
     const firstLetter = (station.name || 'R').charAt(0).toUpperCase();
 
     card.innerHTML = `
       <div class="station-art-wrap">
         ${hasFavicon ? `
-          <img class="station-art" src="${station.favicon}" alt="${station.name}" loading="lazy" onerror="this.onerror=null; this.src='./icons/icon.svg';">
+          <img class="station-art" src="${artUrl}" alt="${station.name}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="station-art-fallback station-monogram" style="display: none;">${firstLetter}</div>
         ` : `
-          <div class="station-art-fallback">${firstLetter}</div>
+          <div class="station-art-fallback station-monogram">${firstLetter}</div>
         `}
         <div class="station-play-overlay">
           <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
@@ -643,6 +608,7 @@ class App {
 
   // --- SPELER INTERFACE BIJWERKEN ---
   updatePlayerUI() {
+    const station = normalizeStation(audioPlayer.currentStation);
     const playIcon = document.getElementById('playIcon');
     const pauseIcon = document.getElementById('pauseIcon');
     const statusBadge = document.getElementById('playerStatusBadge');
@@ -661,10 +627,9 @@ class App {
     if (audioPlayer.currentStation) {
       if (playerName) playerName.textContent = audioPlayer.currentStation.name;
       const defaultIcon = './icons/icon.svg';
+      const artUrl = this.formatArtworkUrl(audioPlayer.currentStation.favicon) || defaultIcon;
       if (playerThumb) {
-        playerThumb.src = (audioPlayer.currentStation.favicon && audioPlayer.currentStation.favicon.startsWith('http'))
-          ? audioPlayer.currentStation.favicon
-          : defaultIcon;
+        playerThumb.src = artUrl;
         playerThumb.onerror = () => { playerThumb.src = defaultIcon; };
       }
     }

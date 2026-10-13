@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="mnmBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="mnmText" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#EC4899"/>
+      <stop offset="100%" stop-color="#F43F5E"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#mnmBg)"/>
+  
+  <text x="256" y="315" fill="url(#mnmText)" font-family="system-ui, -apple-system, 'Impact', 'Arial Black', sans-serif" font-weight="900" font-size="160" text-anchor="middle" letter-spacing="2">MNM</text>
+  <text x="256" y="395" fill="#FFFFFF" opacity="0.9" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="36" text-anchor="middle" letter-spacing="6">LET'S GO</text>
+</svg>

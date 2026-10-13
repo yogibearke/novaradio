@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="joeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#0369A1"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#joeGrad)"/>
+  
+  <text x="256" y="325" fill="#FFFFFF" font-family="system-ui, -apple-system, 'Impact', 'Arial Black', sans-serif" font-weight="900" font-size="190" text-anchor="middle" letter-spacing="-2">JOE</text>
+  <text x="256" y="415" fill="#38BDF8" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="44" text-anchor="middle" letter-spacing="4">ALL THE WAY</text>
+</svg>

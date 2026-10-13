@@ -135,17 +135,34 @@ export class CastController {
 
   /** Moet synchroon vanuit een klik-handler aangeroepen worden */
   requestSession() {
-    if (!this.context) {
-      console.warn('Cast SDK nog niet geladen of niet ondersteund in deze browser.');
+    if (this.context) {
+      if (this.isConnected()) {
+        this.context.endCurrentSession(true);
+        return;
+      }
+      this.context.requestSession().catch((err) => {
+        if (err !== 'cancel') {
+          console.warn('Cast sessie mislukt:', err);
+          this.tryRemotePlaybackPrompt();
+        }
+      });
       return;
     }
-    if (this.isConnected()) {
-      this.context.endCurrentSession(true);
-      return;
+
+    // Als CastContext nog niet beschikbaar is: probeer de Remote Playback API van de audio player
+    this.tryRemotePlaybackPrompt();
+  }
+
+  tryRemotePlaybackPrompt() {
+    if (this.player && this.player.audio && this.player.audio.remote && typeof this.player.audio.remote.prompt === 'function') {
+      this.player.audio.remote.prompt().catch((e) => {
+        console.warn('Remote playback prompt fout:', e);
+      });
+    } else {
+      if (window.novaRadioApp && typeof window.novaRadioApp.showToast === 'function') {
+        window.novaRadioApp.showToast('Cast SDK nog aan het initialiseren...');
+      }
     }
-    this.context.requestSession().catch((err) => {
-      if (err !== 'cancel') console.warn('Cast sessie mislukt:', err);
-    });
   }
 
   isConnected() {

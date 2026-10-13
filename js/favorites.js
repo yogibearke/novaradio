@@ -14,7 +14,7 @@ export const DEFAULT_PRESET_STATIONS = [
     stationuuid: 'preset-stubru',
     name: 'Studio Brussel',
     url_resolved: 'https://icecast.vrtcdn.be/stubru-high.mp3',
-    favicon: 'https://vrt.streamovations.be/logos/stubru.png',
+    favicon: './icons/stubru.svg',
     country: 'Belgium',
     tags: 'rock,alternative,indie,pop',
     codec: 'MP3',
@@ -25,7 +25,7 @@ export const DEFAULT_PRESET_STATIONS = [
     stationuuid: 'preset-radio1',
     name: 'VRT Radio 1',
     url_resolved: 'https://icecast.vrtcdn.be/radio1-high.mp3',
-    favicon: 'https://vrt.streamovations.be/logos/radio1.png',
+    favicon: './icons/radio1.svg',
     country: 'Belgium',
     tags: 'news,talk,current affairs,pop',
     codec: 'MP3',
@@ -36,7 +36,7 @@ export const DEFAULT_PRESET_STATIONS = [
     stationuuid: 'preset-mnm',
     name: 'MNM',
     url_resolved: 'https://icecast.vrtcdn.be/mnm-high.mp3',
-    favicon: 'https://vrt.streamovations.be/logos/mnm.png',
+    favicon: './icons/mnm.svg',
     country: 'Belgium',
     tags: 'pop,hits,dance,charts',
     codec: 'MP3',
@@ -47,7 +47,7 @@ export const DEFAULT_PRESET_STATIONS = [
     stationuuid: 'preset-qmusic-be',
     name: 'Qmusic België',
     url_resolved: 'https://stream.qmusic.be/qmusic/mp3',
-    favicon: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Qmusic_logo_2019.svg/512px-Qmusic_logo_2019.svg.png',
+    favicon: './icons/qmusic.svg',
     country: 'Belgium',
     tags: 'pop,hits,entertainment',
     codec: 'MP3',
@@ -58,7 +58,7 @@ export const DEFAULT_PRESET_STATIONS = [
     stationuuid: 'preset-joe-be',
     name: 'Joe FM',
     url_resolved: 'https://stream.joe.be/joe/mp3',
-    favicon: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Joe_logo_2019.svg/512px-Joe_logo_2019.svg.png',
+    favicon: './icons/joe.svg',
     country: 'Belgium',
     tags: '70s,80s,90s,classics,pop',
     codec: 'MP3',
@@ -122,6 +122,25 @@ export const DEFAULT_PRESET_STATIONS = [
   }
 ];
 
+export function normalizeStation(station) {
+  if (!station) return station;
+  const name = (station.name || '').toLowerCase();
+  if (name.includes('studio brussel') || name === 'stubru') {
+    station.favicon = './icons/stubru.svg';
+  } else if (name.includes('radio 1') && (name.includes('vrt') || station.country === 'Belgium')) {
+    station.favicon = './icons/radio1.svg';
+  } else if (name === 'mnm' || name.includes('vrt mnm')) {
+    station.favicon = './icons/mnm.svg';
+  } else if (name.includes('qmusic')) {
+    station.favicon = './icons/qmusic.svg';
+  } else if (name.includes('joe')) {
+    station.favicon = './icons/joe.svg';
+  } else if (name.includes('classic 21')) {
+    station.favicon = './icons/classic21.svg';
+  }
+  return station;
+}
+
 export class FavoritesManager {
   constructor() {
     this.listeners = new Set();
@@ -133,7 +152,34 @@ export class FavoritesManager {
     if (!existing) {
       // Eerste installatie: initialiseer met de handgeselecteerde favorieten
       this.saveFavorites(DEFAULT_PRESET_STATIONS);
+    } else {
+      // Automatische migratie: vervang dode/geblokkeerde iconen door lokale SVG's
+      try {
+        const list = JSON.parse(existing);
+        list.forEach(s => normalizeStation(s));
+        localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(list));
+      } catch (e) { console.warn(e); }
     }
+
+    // Automatische migratie van recent beluisterde zenders
+    try {
+      const recentsRaw = localStorage.getItem(STORAGE_KEYS.RECENTS);
+      if (recentsRaw) {
+        const recents = JSON.parse(recentsRaw);
+        recents.forEach(s => normalizeStation(s));
+        localStorage.setItem(STORAGE_KEYS.RECENTS, JSON.stringify(recents));
+      }
+    } catch (e) { console.warn(e); }
+
+    // Automatische migratie van de laatst opgeslagen zender
+    try {
+      const lastRaw = localStorage.getItem('novaradio_last_station');
+      if (lastRaw) {
+        const lastStation = JSON.parse(lastRaw);
+        normalizeStation(lastStation);
+        localStorage.setItem('novaradio_last_station', JSON.stringify(lastStation));
+      }
+    } catch (e) { console.warn(e); }
   }
 
   getFavorites() {
