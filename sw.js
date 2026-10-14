@@ -1,4 +1,4 @@
-const CACHE_NAME = 'novaradio-v3.9';
+const CACHE_NAME = 'novaradio-v3.10';
 const STATIC_ASSETS = [
   './',
   './index.html',

@@ -38,6 +38,7 @@ export class CastController {
     this.remoteController = null;
     this.castState = 'NO_DEVICES_AVAILABLE';
     this.listeners = new Set();
+    this.isRequestingSession = false;
 
     // Hook in op globale callback vanuit index.html
     window.__initCastController = () => this.init();
@@ -60,8 +61,8 @@ export class CastController {
     try {
       this.context = cast.framework.CastContext.getInstance();
       this.context.setOptions({
-        receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
-        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+        receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID || 'CC1AD845',
+        autoJoinPolicy: chrome.cast.AutoJoinPolicy ? chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED : 'origin_scoped'
       });
 
       this.remotePlayer = new cast.framework.RemotePlayer();
@@ -91,8 +92,10 @@ export class CastController {
       if (e.sessionState === S.SESSION_STARTING) {
         if (window.debugLog) window.debugLog('Cast verbinden met gekozen apparaat...', 'info');
       } else if (e.sessionState === S.SESSION_START_FAILED) {
+        this.isRequestingSession = false;
         if (window.debugLog) window.debugLog('Cast verbinden MISLUKT (SESSION_START_FAILED): code=' + (e.errorCode || 'onbekend'), 'error');
       } else if (e.sessionState === S.SESSION_STARTED || e.sessionState === S.SESSION_RESUMED) {
+        this.isRequestingSession = false;
         const devName = this.getDeviceName() || 'Chromecast';
         if (window.debugLog) window.debugLog('Cast succesvol verbonden met: ' + devName, 'success');
         this.player.audio.pause();
@@ -163,6 +166,11 @@ export class CastController {
 
   /** Moet synchroon vanuit een klik-handler aangeroepen worden */
   requestSession() {
+    if (this.isRequestingSession) {
+      if (window.debugLog) window.debugLog('requestSession() genegeerd: al een aanvraag actief', 'warn');
+      return;
+    }
+
     if (window.debugLog) window.debugLog('requestSession() aangeroepen (CastState=' + this.castState + ')', 'info');
 
     if (!this.context && window.cast && window.cast.framework) {
@@ -175,12 +183,16 @@ export class CastController {
         this.context.endCurrentSession(true);
         return;
       }
+
+      this.isRequestingSession = true;
       this.context.requestSession()
         .then(() => {
+          this.isRequestingSession = false;
           console.log('Cast sessie geopend');
           if (window.debugLog) window.debugLog('requestSession() resolved (apparaat gekozen)', 'success');
         })
         .catch((err) => {
+          this.isRequestingSession = false;
           if (err === 'cancel') {
             console.log('Cast sessie selectie geannuleerd door gebruiker');
             if (window.debugLog) window.debugLog('Cast selectiedialoog gesloten (geen apparaat gekozen)', 'warn');
@@ -188,13 +200,13 @@ export class CastController {
             console.warn('Cast sessie mislukt of afgewezen:', err);
             const errDetail = (typeof err === 'object') ? JSON.stringify(err) : String(err);
             if (window.debugLog) window.debugLog('requestSession FOUT: ' + errDetail, 'error');
-            this.tryRemotePlaybackPrompt();
+            // Bij een actieve Google Cast SDK roepen we GEEN conflicterende remote.prompt() aan
           }
         });
       return;
     }
 
-    // Als CastContext nog niet beschikbaar is: probeer de Remote Playback API van de audio player
+    // Alleen als CastContext geheel niet beschikbaar is op dit platform
     this.tryRemotePlaybackPrompt();
   }
 

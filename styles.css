@@ -256,17 +256,7 @@ body {
   transition: all 0.25s ease;
 }
 
-/* Native Google Cast launcher overlay for guaranteed Chrome device picker */
-.cast-launcher-embed {
-  position: absolute;
-  inset: 0;
-  width: 100% !important;
-  height: 100% !important;
-  opacity: 0.001;
-  z-index: 5;
-  cursor: pointer;
-  display: block;
-}
+
 .btn-cast:hover {
   color: var(--secondary);
   border-color: var(--secondary);
