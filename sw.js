@@ -1,4 +1,4 @@
-const CACHE_NAME = 'novaradio-v3.6';
+const CACHE_NAME = 'novaradio-v3.7';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ const STATIC_ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/stubru.svg',
+  './icons/radio2.svg',
   './icons/radio1.svg',
   './icons/mnm.svg',
   './icons/qmusic.svg',

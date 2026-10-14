@@ -36,6 +36,7 @@ export class AudioPlayer {
 
     // Cast integratie callback
     this.castController = null;
+    this.loadingWatchdogId = null;
 
     this.currentStation = this.getLastStation();
 
@@ -89,21 +90,31 @@ export class AudioPlayer {
       console.warn('Audio playback fout:', e, this.audio.error);
       this.handleStreamError();
     });
+
+    this.audio.addEventListener('stalled', () => {
+      console.warn('Audio stream verbinding vertraagd (stalled)');
+    });
+
+    this.audio.addEventListener('abort', () => {
+      this.clearLoadingWatchdog();
+    });
   }
 
-  handleStreamError() {
+  handleStreamError(customMsg) {
+    this.clearLoadingWatchdog();
     if (this.retryCount < this.maxRetries && this.currentStation) {
       this.retryCount++;
       console.log(`Stream herverbinden (poging ${this.retryCount}/${this.maxRetries})...`);
       setTimeout(() => {
         if (this.currentStation) {
-          this.audio.src = this.currentStation.url_resolved + (this.currentStation.url_resolved.includes('?') ? '&' : '?') + '_t=' + Date.now();
+          const sep = this.currentStation.url_resolved.includes('?') ? '&' : '?';
+          this.audio.src = this.currentStation.url_resolved + sep + '_t=' + Date.now();
           this.audio.load();
           this.audio.play().catch(e => console.error('Herverbinden mislukt:', e));
         }
       }, 1500);
     } else {
-      this.errorMessage = 'Stream kan niet worden geladen of is offline';
+      this.errorMessage = customMsg || 'Stream kan niet worden geladen of is offline';
       this.setStatus(PlaybackStatus.ERROR);
     }
   }
@@ -167,7 +178,16 @@ export class AudioPlayer {
     if (this.status === PlaybackStatus.PLAYING) {
       this.audio.pause();
     } else {
-      this.audio.play().catch(e => console.error(e));
+      // Als audio.src nog niet gezet is (bijv. na opstart) of de status STOPPED is:
+      // altijd playStation() aanroepen zodat src correct geladen en gestart wordt!
+      if (!this.audio.src || this.status === PlaybackStatus.STOPPED) {
+        this.playStation(this.currentStation);
+        return;
+      }
+      this.audio.play().catch(e => {
+        console.warn('Direct afspelen mislukt, herstarten via playStation:', e);
+        this.playStation(this.currentStation);
+      });
     }
   }
 
@@ -215,7 +235,41 @@ export class AudioPlayer {
 
   setStatus(newStatus) {
     this.status = newStatus;
+    if (newStatus === PlaybackStatus.LOADING) {
+      this.startLoadingWatchdog();
+    } else {
+      this.clearLoadingWatchdog();
+    }
     this.notify();
+  }
+
+  startLoadingWatchdog() {
+    this.clearLoadingWatchdog();
+    // 8.5 seconden buffer timeout
+    this.loadingWatchdogId = setTimeout(() => {
+      if (this.status === PlaybackStatus.LOADING) {
+        console.warn('Stream buffer time-out na 8.5s voor:', this.currentStation?.name);
+        
+        // Als de URL http:// was op https, probeer automatisch https://
+        if (this.currentStation && this.currentStation.url_resolved && this.currentStation.url_resolved.startsWith('http://')) {
+          console.log('Poging tot automatische HTTPS-upgrade van stream...');
+          this.currentStation.url_resolved = this.currentStation.url_resolved.replace('http://', 'https://');
+          this.audio.src = this.currentStation.url_resolved;
+          this.audio.load();
+          this.audio.play().catch(e => console.warn(e));
+          return;
+        }
+
+        this.handleStreamError('Stream verbinding time-out. Tik opnieuw op Play of kies een andere zender.');
+      }
+    }, 8500);
+  }
+
+  clearLoadingWatchdog() {
+    if (this.loadingWatchdogId) {
+      clearTimeout(this.loadingWatchdogId);
+      this.loadingWatchdogId = null;
+    }
   }
 
   // --- ANDROID AUTO & VERGRENDELSCHERM (Media Session API) ---

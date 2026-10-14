@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="r2Bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF6B00"/>
+      <stop offset="100%" stop-color="#D9480F"/>
+    </linearGradient>
+    <filter id="r2Shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="url(#r2Bg)"/>
+  
+  <!-- Number 2 & Radio 2 Antwerpen Typography -->
+  <g fill="#FFFFFF" filter="url(#r2Shadow)">
+    <text x="256" y="305" font-family="system-ui, -apple-system, 'Arial Black', Impact, sans-serif" font-weight="900" font-size="260" text-anchor="middle">2</text>
+    <text x="256" y="390" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="44" text-anchor="middle" letter-spacing="4">RADIO 2</text>
+    <text x="256" y="445" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="30" text-anchor="middle" letter-spacing="3" opacity="0.95">ANTWERPEN</text>
+  </g>
+</svg>

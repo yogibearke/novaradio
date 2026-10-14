@@ -22,6 +22,28 @@ export const DEFAULT_PRESET_STATIONS = [
     homepage: 'https://stubru.be'
   },
   {
+    stationuuid: 'preset-radio2-ant',
+    name: 'Radio 2 Antwerpen',
+    url_resolved: 'https://icecast.vrtcdn.be/ra2ant-high.mp3',
+    favicon: './icons/radio2.svg',
+    country: 'Belgium',
+    tags: 'pop,hits,regional,news,antwerpen',
+    codec: 'MP3',
+    bitrate: 128,
+    homepage: 'https://radio2.be'
+  },
+  {
+    stationuuid: 'preset-classic21',
+    name: 'RTBF Classic 21',
+    url_resolved: 'https://radio.rtbf.be/c21/mp3-160/me',
+    favicon: './icons/classic21.svg',
+    country: 'Belgium',
+    tags: 'classic rock,rock,pop,70s,80s',
+    codec: 'MP3',
+    bitrate: 160,
+    homepage: 'https://rtbf.be/classic21'
+  },
+  {
     stationuuid: 'preset-radio1',
     name: 'VRT Radio 1',
     url_resolved: 'https://icecast.vrtcdn.be/radio1-high.mp3',
@@ -127,16 +149,34 @@ export function normalizeStation(station) {
   const name = (station.name || '').toLowerCase();
   if (name.includes('studio brussel') || name === 'stubru') {
     station.favicon = './icons/stubru.svg';
+    if (!station.url_resolved || station.url_resolved.startsWith('http://')) {
+      station.url_resolved = 'https://icecast.vrtcdn.be/stubru-high.mp3';
+    }
+  } else if (name.includes('radio 2') && (name.includes('antwerp') || name.includes('vrt') || station.country === 'Belgium')) {
+    station.favicon = './icons/radio2.svg';
+    if (!station.url_resolved || station.url_resolved.startsWith('http://')) {
+      station.url_resolved = 'https://icecast.vrtcdn.be/ra2ant-high.mp3';
+    }
   } else if (name.includes('radio 1') && (name.includes('vrt') || station.country === 'Belgium')) {
     station.favicon = './icons/radio1.svg';
+    if (!station.url_resolved || station.url_resolved.startsWith('http://')) {
+      station.url_resolved = 'https://icecast.vrtcdn.be/radio1-high.mp3';
+    }
   } else if (name === 'mnm' || name.includes('vrt mnm')) {
     station.favicon = './icons/mnm.svg';
+    if (!station.url_resolved || station.url_resolved.startsWith('http://')) {
+      station.url_resolved = 'https://icecast.vrtcdn.be/mnm-high.mp3';
+    }
   } else if (name.includes('qmusic')) {
     station.favicon = './icons/qmusic.svg';
   } else if (name.includes('joe')) {
     station.favicon = './icons/joe.svg';
   } else if (name.includes('classic 21')) {
     station.favicon = './icons/classic21.svg';
+    // Altijd de officiële werkende HTTPS RTBF stream garanderen
+    if (!station.url_resolved || station.url_resolved.includes('streaming.rtbf.be') || station.url_resolved.includes('infomaniak') || station.url_resolved.startsWith('http://')) {
+      station.url_resolved = 'https://radio.rtbf.be/c21/mp3-160/me';
+    }
   }
   return station;
 }
@@ -157,6 +197,20 @@ export class FavoritesManager {
       try {
         const list = JSON.parse(existing);
         list.forEach(s => normalizeStation(s));
+        // Voeg Radio 2 Antwerpen toe als hij nog niet in favorieten staat
+        if (!list.some(s => (s.name || '').toLowerCase().includes('radio 2 antwerpen'))) {
+          list.splice(1, 0, {
+            stationuuid: 'preset-radio2-ant',
+            name: 'Radio 2 Antwerpen',
+            url_resolved: 'https://icecast.vrtcdn.be/ra2ant-high.mp3',
+            favicon: './icons/radio2.svg',
+            country: 'Belgium',
+            tags: 'pop,hits,regional,news,antwerpen',
+            codec: 'MP3',
+            bitrate: 128,
+            homepage: 'https://radio2.be'
+          });
+        }
         localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(list));
       } catch (e) { console.warn(e); }
     }
