@@ -39,32 +39,40 @@ export class CastController {
     this.castState = 'NO_DEVICES_AVAILABLE';
     this.listeners = new Set();
 
-    // Callback die de Cast SDK aanroept zodra hij geladen is
-    window.__onGCastApiAvailable = (isAvailable) => {
-      if (isAvailable) this.init();
-    };
-    if (window.cast && window.cast.framework) this.init();
+    // Hook in op globale callback vanuit index.html
+    window.__initCastController = () => this.init();
+
+    // Als de SDK al klaar is of de callback al getriggerd was
+    if (window.__castApiAvailable || (window.cast && window.cast.framework && window.chrome && window.chrome.cast)) {
+      this.init();
+    }
   }
 
   init() {
     if (this.context) return;
     const { cast, chrome } = window;
 
-    // De SDK roept de callback soms aan vóór cast.framework klaar is: even opnieuw proberen
     if (!cast || !cast.framework || !chrome || !chrome.cast) {
-      setTimeout(() => this.init(), 100);
+      setTimeout(() => this.init(), 150);
       return;
     }
 
-    this.context = cast.framework.CastContext.getInstance();
-    this.context.setOptions({
-      receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
-      autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
-    });
+    try {
+      this.context = cast.framework.CastContext.getInstance();
+      this.context.setOptions({
+        receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+      });
 
-    this.remotePlayer = new cast.framework.RemotePlayer();
-    this.remoteController = new cast.framework.RemotePlayerController(this.remotePlayer);
-    this.castState = this.context.getCastState();
+      this.remotePlayer = new cast.framework.RemotePlayer();
+      this.remoteController = new cast.framework.RemotePlayerController(this.remotePlayer);
+      this.castState = this.context.getCastState();
+      console.log('Google Cast SDK gereed. CastState:', this.castState);
+    } catch (err) {
+      console.warn('CastContext initialisatie fout:', err);
+      setTimeout(() => this.init(), 250);
+      return;
+    }
 
     this.context.addEventListener(cast.framework.CastContextEventType.CAST_STATE_CHANGED, (e) => {
       this.castState = e.castState;
@@ -135,17 +143,25 @@ export class CastController {
 
   /** Moet synchroon vanuit een klik-handler aangeroepen worden */
   requestSession() {
+    if (!this.context && window.cast && window.cast.framework) {
+      this.init();
+    }
+
     if (this.context) {
       if (this.isConnected()) {
         this.context.endCurrentSession(true);
         return;
       }
-      this.context.requestSession().catch((err) => {
-        if (err !== 'cancel') {
-          console.warn('Cast sessie mislukt:', err);
-          this.tryRemotePlaybackPrompt();
-        }
-      });
+      this.context.requestSession()
+        .then(() => {
+          console.log('Cast sessie geopend');
+        })
+        .catch((err) => {
+          if (err !== 'cancel') {
+            console.warn('Cast sessie mislukt of afgewezen:', err);
+            this.tryRemotePlaybackPrompt();
+          }
+        });
       return;
     }
 
