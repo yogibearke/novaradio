@@ -68,23 +68,37 @@ export class CastController {
       this.remoteController = new cast.framework.RemotePlayerController(this.remotePlayer);
       this.castState = this.context.getCastState();
       console.log('Google Cast SDK gereed. CastState:', this.castState);
+      if (window.debugLog) window.debugLog('Google Cast SDK gereed. CastState: ' + this.castState, 'success');
     } catch (err) {
       console.warn('CastContext initialisatie fout:', err);
+      if (window.debugLog) window.debugLog('CastContext init fout: ' + err.message, 'error');
       setTimeout(() => this.init(), 250);
       return;
     }
 
     this.context.addEventListener(cast.framework.CastContextEventType.CAST_STATE_CHANGED, (e) => {
       this.castState = e.castState;
+      if (window.debugLog) window.debugLog('CastState gewijzigd naar: ' + e.castState, 'info');
       this.notify();
     });
 
     this.context.addEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED, (e) => {
       const S = cast.framework.SessionState;
-      if (e.sessionState === S.SESSION_STARTED || e.sessionState === S.SESSION_RESUMED) {
+      if (window.debugLog) {
+        window.debugLog('Cast sessionState: ' + e.sessionState + (e.errorCode ? ' (code=' + e.errorCode + ')' : ''), 'info');
+      }
+
+      if (e.sessionState === S.SESSION_STARTING) {
+        if (window.debugLog) window.debugLog('Cast verbinden met gekozen apparaat...', 'info');
+      } else if (e.sessionState === S.SESSION_START_FAILED) {
+        if (window.debugLog) window.debugLog('Cast verbinden MISLUKT (SESSION_START_FAILED): code=' + (e.errorCode || 'onbekend'), 'error');
+      } else if (e.sessionState === S.SESSION_STARTED || e.sessionState === S.SESSION_RESUMED) {
+        const devName = this.getDeviceName() || 'Chromecast';
+        if (window.debugLog) window.debugLog('Cast succesvol verbonden met: ' + devName, 'success');
         this.player.audio.pause();
         if (this.player.currentStation) this.loadMedia(this.player.currentStation);
       } else if (e.sessionState === S.SESSION_ENDED) {
+        if (window.debugLog) window.debugLog('Cast-sessie beëindigd', 'warn');
         if (this.player.currentStation) {
           console.log('Cast-sessie beëindigd. Lokaal afspelen hervatten voor:', this.player.currentStation.name);
           this.player.audio.src = this.player.currentStation.url_resolved;
@@ -119,6 +133,12 @@ export class CastController {
       const state = this.remotePlayer.playerState;
       const S = chrome.cast.media.PlayerState;
 
+      const idleInfo = (state === S.IDLE && this.remotePlayer.idleReason) ? (' (idle=' + this.remotePlayer.idleReason + ')') : '';
+      if (window.debugLog) {
+        const logType = state === S.PLAYING ? 'success' : (state === S.IDLE && this.remotePlayer.idleReason === chrome.cast.media.IdleReason.ERROR ? 'error' : 'info');
+        window.debugLog('Cast remotePlayer state: ' + state + idleInfo, logType);
+      }
+
       if (state === S.PLAYING) {
         this.player.setStatus(PlaybackStatus.PLAYING);
       } else if (state === S.BUFFERING) {
@@ -143,22 +163,31 @@ export class CastController {
 
   /** Moet synchroon vanuit een klik-handler aangeroepen worden */
   requestSession() {
+    if (window.debugLog) window.debugLog('requestSession() aangeroepen (CastState=' + this.castState + ')', 'info');
+
     if (!this.context && window.cast && window.cast.framework) {
       this.init();
     }
 
     if (this.context) {
       if (this.isConnected()) {
+        if (window.debugLog) window.debugLog('Al verbonden, sessie wordt verbroken...', 'warn');
         this.context.endCurrentSession(true);
         return;
       }
       this.context.requestSession()
         .then(() => {
           console.log('Cast sessie geopend');
+          if (window.debugLog) window.debugLog('requestSession() resolved (apparaat gekozen)', 'success');
         })
         .catch((err) => {
-          if (err !== 'cancel') {
+          if (err === 'cancel') {
+            console.log('Cast sessie selectie geannuleerd door gebruiker');
+            if (window.debugLog) window.debugLog('Cast selectiedialoog gesloten (geen apparaat gekozen)', 'warn');
+          } else {
             console.warn('Cast sessie mislukt of afgewezen:', err);
+            const errDetail = (typeof err === 'object') ? JSON.stringify(err) : String(err);
+            if (window.debugLog) window.debugLog('requestSession FOUT: ' + errDetail, 'error');
             this.tryRemotePlaybackPrompt();
           }
         });
@@ -171,10 +200,15 @@ export class CastController {
 
   tryRemotePlaybackPrompt() {
     if (this.player && this.player.audio && this.player.audio.remote && typeof this.player.audio.remote.prompt === 'function') {
-      this.player.audio.remote.prompt().catch((e) => {
+      if (window.debugLog) window.debugLog('Audio remote.prompt() wordt geactiveerd...', 'info');
+      this.player.audio.remote.prompt().then(() => {
+        if (window.debugLog) window.debugLog('remote.prompt() succesvol', 'success');
+      }).catch((e) => {
         console.warn('Remote playback prompt fout:', e);
+        if (window.debugLog) window.debugLog('remote.prompt() fout: ' + (e.message || e), 'error');
       });
     } else {
+      if (window.debugLog) window.debugLog('Geen remote.prompt() beschikbaar op dit apparaat/browser', 'warn');
       if (window.novaRadioApp && typeof window.novaRadioApp.showToast === 'function') {
         window.novaRadioApp.showToast('Cast SDK nog aan het initialiseren...');
       }
@@ -208,6 +242,7 @@ export class CastController {
       const activeMedia = session.getMediaSession();
       if (activeMedia) {
         console.log('Eerdere Cast-stream netjes stoppen voor wissel...');
+        if (window.debugLog) window.debugLog('Eerdere Cast stream netjes stoppen voor zenderwissel...', 'info');
         await new Promise((resolve) => {
           activeMedia.stop(null, () => resolve(), () => resolve());
           setTimeout(resolve, 250);
@@ -220,6 +255,7 @@ export class CastController {
 
     const mimeType = getStreamMimeType(station);
     console.log(`Schone stream starten op Cast (${station.name}): ${station.url_resolved} [${mimeType}]`);
+    if (window.debugLog) window.debugLog(`Cast loadMedia (${station.name}): ${mimeType} -> ${station.url_resolved}`, 'info');
 
     const mediaInfo = new chrome.cast.media.MediaInfo(station.url_resolved, mimeType);
     mediaInfo.streamType = chrome.cast.media.StreamType.LIVE;
@@ -237,10 +273,13 @@ export class CastController {
 
     session.loadMedia(request).then(
       () => {
+        if (window.debugLog) window.debugLog('Cast loadMedia() geaccepteerd door receiver', 'success');
         this.player.setStatus(PlaybackStatus.PLAYING);
       },
       (err) => {
         console.error('Cast kon de stream niet laden:', err);
+        const errStr = (typeof err === 'object') ? JSON.stringify(err) : String(err);
+        if (window.debugLog) window.debugLog('Cast loadMedia() FOUT: ' + errStr, 'error');
         this.player.errorMessage = 'Chromecast kon deze stream niet laden';
         this.player.setStatus(PlaybackStatus.ERROR);
       }

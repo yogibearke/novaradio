@@ -262,6 +262,38 @@ class App {
     document.getElementById('addFavShortcutBtn')?.addEventListener('click', () => {
       this.switchTab('discover');
     });
+
+    // Tijdelijke Debug console controls
+    const debugBar = document.getElementById('castDebugBar');
+    const toggleBtn = document.getElementById('toggleDebugLogsBtn');
+    document.getElementById('castDebugToggle')?.addEventListener('click', (e) => {
+      if (e.target.tagName === 'BUTTON') return;
+      debugBar?.classList.toggle('is-collapsed');
+      if (toggleBtn) toggleBtn.textContent = debugBar?.classList.contains('is-collapsed') ? '▲' : '▼';
+    });
+    toggleBtn?.addEventListener('click', () => {
+      debugBar?.classList.toggle('is-collapsed');
+      toggleBtn.textContent = debugBar?.classList.contains('is-collapsed') ? '▲' : '▼';
+    });
+    document.getElementById('copyDebugLogsBtn')?.addEventListener('click', () => {
+      const text = (window.debugLogs || []).map(l => `[${l.time}] ${l.msg}`).join('\n');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          this.showToast('Cast logs gekopieerd naar klembord!');
+        }).catch(() => {
+          prompt('Kopieer de debug logs:', text);
+        });
+      } else {
+        prompt('Kopieer de debug logs:', text);
+      }
+    });
+    document.getElementById('clearDebugLogsBtn')?.addEventListener('click', () => {
+      window.debugLogs = [];
+      const content = document.getElementById('castDebugContent');
+      const countEl = document.getElementById('castDebugCount');
+      if (content) content.innerHTML = '';
+      if (countEl) countEl.textContent = '0';
+    });
   }
 
   bindNowPlayingEvents() {

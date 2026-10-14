@@ -16,10 +16,29 @@
   <link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
 
-  <!-- Google Cast Web SDK Initialization Hook (moet vóór cast_sender.js staan!) -->
+  <!-- Global Debug Logger Hook & Google Cast Hook -->
   <script>
+    window.debugLogs = [];
+    window.debugLog = function(msg, type) {
+      const time = new Date().toTimeString().slice(0, 8);
+      const entry = { time, msg: String(msg), type: type || 'info' };
+      window.debugLogs.push(entry);
+      console.log(`[CastDebug ${time}]`, msg);
+      const container = document.getElementById('castDebugContent');
+      const countEl = document.getElementById('castDebugCount');
+      if (container) {
+        const line = document.createElement('div');
+        line.className = `debug-line debug-${entry.type}`;
+        line.textContent = `[${time}] ${entry.msg}`;
+        container.appendChild(line);
+        container.scrollTop = container.scrollHeight;
+      }
+      if (countEl) countEl.textContent = window.debugLogs.length;
+    };
+
     window['__onGCastApiAvailable'] = function(isAvailable) {
       window.__castApiAvailable = isAvailable;
+      window.debugLog('__onGCastApiAvailable aangeroepen: ' + isAvailable, isAvailable ? 'success' : 'error');
       if (window.__initCastController) {
         window.__initCastController();
       }
@@ -28,7 +47,7 @@
   <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="./styles.css?v=7">
+  <link rel="stylesheet" href="./styles.css?v=8">
 </head>
 <body>
 
@@ -574,8 +593,21 @@
   <!-- Toast Notification Layer -->
   <div id="toastContainer" class="toast-container"></div>
 
+  <!-- Tijdelijke On-Screen Debug Console -->
+  <div id="castDebugBar" class="cast-debug-bar">
+    <div class="cast-debug-header" id="castDebugToggle">
+      <span class="cast-debug-title">🐞 Cast Log (<span id="castDebugCount">0</span>)</span>
+      <div class="cast-debug-actions">
+        <button id="copyDebugLogsBtn" class="debug-btn" type="button">Kopieer</button>
+        <button id="clearDebugLogsBtn" class="debug-btn" type="button">Wis</button>
+        <button id="toggleDebugLogsBtn" class="debug-btn" type="button">▲</button>
+      </div>
+    </div>
+    <div id="castDebugContent" class="cast-debug-content"></div>
+  </div>
+
   <!-- Main Application Entry Script -->
-  <script type="module" src="./js/app.js?v=11"></script>
+  <script type="module" src="./js/app.js?v=12"></script>
 
 </body>
 </html>

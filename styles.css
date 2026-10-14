@@ -1532,5 +1532,91 @@ body {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.15);
 }
 
+/* ==========================================================================
+   Tijdelijke On-Screen Debug Console
+   ========================================================================== */
+.cast-debug-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 99999;
+  background: rgba(10, 15, 29, 0.96);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--secondary);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.6);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  color: #e2e8f0;
+  transition: max-height 0.3s ease;
+  max-height: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cast-debug-bar.is-collapsed .cast-debug-content {
+  display: none;
+}
+.cast-debug-bar.is-collapsed {
+  max-height: 40px;
+}
+
+.cast-debug-header {
+  padding: 0.4rem 0.8rem;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cast-debug-title {
+  color: var(--secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.cast-debug-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.debug-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: #fff;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+.debug-btn:hover {
+  background: var(--secondary);
+  color: #000;
+}
+
+.cast-debug-content {
+  overflow-y: auto;
+  max-height: 240px;
+  padding: 0.5rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.debug-line {
+  line-height: 1.35;
+  word-break: break-all;
+}
+.debug-line.debug-info { color: #94a3b8; }
+.debug-line.debug-success { color: #34d399; font-weight: 700; }
+.debug-line.debug-warn { color: #fbbf24; }
+.debug-line.debug-error { color: #f87171; font-weight: 700; }
+
 
 
