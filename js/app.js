@@ -5,7 +5,7 @@
 import { favoritesManager, normalizeStation } from './favorites.js';
 import { radioApi } from './radio-api.js';
 import { audioPlayer, PlaybackStatus } from './player.js';
-import { CastController } from './cast.js?v=8';
+import { CastController } from './cast.js?v=14';
 import { AudioVisualizer } from './visualizer.js';
 
 class App {
@@ -293,6 +293,24 @@ class App {
       const countEl = document.getElementById('castDebugCount');
       if (content) content.innerHTML = '';
       if (countEl) countEl.textContent = '0';
+    });
+    document.getElementById('reloadAppBtn')?.addEventListener('click', async () => {
+      if (window.debugLog) window.debugLog('Caches wissen en app geforceerd herladen...', 'warn');
+      if ('serviceWorker' in navigator) {
+        try {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const r of regs) await r.unregister();
+        } catch (e) {}
+      }
+      if ('caches' in window) {
+        try {
+          const keys = await caches.keys();
+          for (const k of keys) await caches.delete(k);
+        } catch (e) {}
+      }
+      setTimeout(() => {
+        window.location.reload(true);
+      }, 150);
     });
   }
 
