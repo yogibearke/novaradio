@@ -275,7 +275,7 @@ body {
   100% { box-shadow: 0 0 8px rgba(6, 182, 212, 0.4); }
 }
 .btn-cast.no-devices {
-  opacity: 0.4;
+  opacity: 0.9;
 }
 
 .btn-icon {
