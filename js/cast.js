@@ -60,10 +60,19 @@ export class CastController {
 
     try {
       this.context = cast.framework.CastContext.getInstance();
+      const appId = (window.chrome && window.chrome.cast && window.chrome.cast.media && window.chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID) || 'CC1AD845';
+      const autoJoin = (window.chrome && window.chrome.cast && window.chrome.cast.AutoJoinPolicy)
+        ? window.chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+        : 'origin_scoped';
+
       this.context.setOptions({
-        receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
-        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+        receiverApplicationId: appId,
+        autoJoinPolicy: autoJoin
       });
+
+      if (window.debugLog) {
+        window.debugLog('CastContext geconfigureerd met AppID: ' + appId, 'info');
+      }
 
       this.remotePlayer = new cast.framework.RemotePlayer();
       this.remoteController = new cast.framework.RemotePlayerController(this.remotePlayer);

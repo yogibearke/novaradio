@@ -5,7 +5,7 @@
 import { favoritesManager, normalizeStation } from './favorites.js';
 import { radioApi } from './radio-api.js';
 import { audioPlayer, PlaybackStatus } from './player.js';
-import { CastController } from './cast.js?v=19';
+import { CastController } from './cast.js?v=20';
 import { AudioVisualizer } from './visualizer.js';
 
 class App {
