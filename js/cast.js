@@ -62,7 +62,9 @@ export class CastController {
       this.context = cast.framework.CastContext.getInstance();
       this.context.setOptions({
         receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID || 'CC1AD845',
-        autoJoinPolicy: chrome.cast.AutoJoinPolicy ? chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED : 'origin_scoped'
+        autoJoinPolicy: chrome.cast.AutoJoinPolicy ? chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED : 'origin_scoped',
+        androidReceiverCompatible: true,
+        resumeSavedSession: true
       });
 
       this.remotePlayer = new cast.framework.RemotePlayer();
@@ -185,13 +187,22 @@ export class CastController {
       }
 
       this.isRequestingSession = true;
+      const timeoutId = setTimeout(() => {
+        if (this.isRequestingSession) {
+          this.isRequestingSession = false;
+          if (window.debugLog) window.debugLog('Cast selectie time-out na 12s: lock hersteld', 'warn');
+        }
+      }, 12000);
+
       this.context.requestSession()
         .then(() => {
+          clearTimeout(timeoutId);
           this.isRequestingSession = false;
           console.log('Cast sessie geopend');
           if (window.debugLog) window.debugLog('requestSession() resolved (apparaat gekozen)', 'success');
         })
         .catch((err) => {
+          clearTimeout(timeoutId);
           this.isRequestingSession = false;
           if (err === 'cancel') {
             console.log('Cast sessie selectie geannuleerd door gebruiker');
