@@ -239,7 +239,18 @@ export class CastController {
     if (!session || !station) return;
     const { chrome } = window;
 
+    // Garandeer dat de telefoonluidspreker 100% stil is en de watchdog niet meeloopt
+    this.player.audio.pause();
+    this.player.audio.removeAttribute('src');
+    this.player.clearLoadingWatchdog();
     this.player.setStatus(PlaybackStatus.LOADING);
+
+    // Automatische HTTPS upgrade voor snellere Cast-verbinding (o.a. Radio Minerva)
+    if (station.url_resolved && station.url_resolved.startsWith('http://')) {
+      if (station.url_resolved.includes('radiominerva.be') || station.url_resolved.includes('vrtcdn.be') || station.url_resolved.includes('rtbf.be')) {
+        station.url_resolved = station.url_resolved.replace('http://', 'https://');
+      }
+    }
 
     // 1. Schone stop van eerdere actieve stream op de Chromecast
     try {

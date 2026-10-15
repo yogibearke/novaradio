@@ -35,7 +35,7 @@
       }
       if (countEl) countEl.textContent = window.debugLogs.length;
     };
-    window.debugLog('NovaRadio v3.13 gestart (Cast v16)', 'info');
+    window.debugLog('NovaRadio v3.14 gestart (Cast v17)', 'info');
 
     window['__onGCastApiAvailable'] = function(isAvailable) {
       window.__castApiAvailable = isAvailable;
@@ -48,7 +48,7 @@
   <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="./styles.css?v=12">
+  <link rel="stylesheet" href="./styles.css?v=13">
 </head>
 <body>
 
@@ -595,7 +595,7 @@
   <!-- Tijdelijke On-Screen Debug Console -->
   <div id="castDebugBar" class="cast-debug-bar">
     <div class="cast-debug-header" id="castDebugToggle">
-      <span class="cast-debug-title">🐞 Cast Log v3.13 (<span id="castDebugCount">0</span>)</span>
+      <span class="cast-debug-title">🐞 Cast Log v3.14 (<span id="castDebugCount">0</span>)</span>
       <div class="cast-debug-actions">
         <button id="copyDebugLogsBtn" class="debug-btn" type="button">Kopieer</button>
         <button id="clearDebugLogsBtn" class="debug-btn" type="button">Wis</button>
@@ -607,7 +607,7 @@
   </div>
 
   <!-- Main Application Entry Script -->
-  <script type="module" src="./js/app.js?v=16"></script>
+  <script type="module" src="./js/app.js?v=17"></script>
 
 </body>
 </html>

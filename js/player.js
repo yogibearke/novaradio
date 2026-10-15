@@ -134,6 +134,12 @@ export class AudioPlayer {
       return;
     }
 
+    if (station && station.url_resolved && station.url_resolved.startsWith('http://')) {
+      if (station.url_resolved.includes('radiominerva.be') || station.url_resolved.includes('vrtcdn.be') || station.url_resolved.includes('rtbf.be')) {
+        station.url_resolved = station.url_resolved.replace('http://', 'https://');
+      }
+    }
+
     this.currentStation = station;
     this.errorMessage = '';
     this.retryCount = 0;
@@ -163,6 +169,7 @@ export class AudioPlayer {
 
   togglePlay() {
     if (this.castController && this.castController.isConnected()) {
+      this.audio.pause();
       this.castController.togglePlay();
       return;
     }
@@ -192,22 +199,22 @@ export class AudioPlayer {
   }
 
   pause() {
+    this.audio.pause();
     if (this.castController && this.castController.isConnected()) {
       this.castController.pause();
       return;
     }
-    this.audio.pause();
   }
 
   stop() {
-    if (this.castController && this.castController.isConnected()) {
-      this.castController.stop();
-      return;
-    }
     this.audio.pause();
     this.audio.src = '';
     this.setStatus(PlaybackStatus.STOPPED);
     this.updateMediaSessionState('none');
+    if (this.castController && this.castController.isConnected()) {
+      this.castController.stop();
+      return;
+    }
   }
 
   setVolume(val) {
@@ -245,9 +252,18 @@ export class AudioPlayer {
 
   startLoadingWatchdog() {
     this.clearLoadingWatchdog();
+    // Als Cast actief is, beheert de Chromecast zijn eigen status en mag de lokale telefoon-audio NOOIT starten!
+    if (this.castController && this.castController.isConnected()) {
+      return;
+    }
+
     // 8.5 seconden buffer timeout
     this.loadingWatchdogId = setTimeout(() => {
       if (this.status === PlaybackStatus.LOADING) {
+        // Dubbele check: als we inmiddels verbonden zijn met Cast, breek direct af
+        if (this.castController && this.castController.isConnected()) {
+          return;
+        }
         console.warn('Stream buffer time-out na 8.5s voor:', this.currentStation?.name);
         
         // Als de URL http:// was op https, probeer automatisch https://
