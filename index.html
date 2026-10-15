@@ -35,25 +35,11 @@
       }
       if (countEl) countEl.textContent = window.debugLogs.length;
     };
-    window.debugLog('NovaRadio v3.12 gestart (Cast v15)', 'info');
+    window.debugLog('NovaRadio v3.13 gestart (Cast v16)', 'info');
 
     window['__onGCastApiAvailable'] = function(isAvailable) {
       window.__castApiAvailable = isAvailable;
-      window.debugLog('__onGCastApiAvailable aangeroepen: ' + isAvailable, isAvailable ? 'success' : 'error');
-      if (isAvailable && window.cast && window.cast.framework && window.chrome && window.chrome.cast) {
-        try {
-          const context = cast.framework.CastContext.getInstance();
-          context.setOptions({
-            receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID || 'CC1AD845',
-            autoJoinPolicy: chrome.cast.AutoJoinPolicy ? chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED : 'origin_scoped',
-            androidReceiverCompatible: true,
-            resumeSavedSession: true
-          });
-          window.debugLog('CastContext geconfigureerd met androidReceiverCompatible: true', 'success');
-        } catch (e) {
-          window.debugLog('Fout bij setOptions in head: ' + e.message, 'error');
-        }
-      }
+      window.debugLog('__onGCastApiAvailable: ' + isAvailable, isAvailable ? 'success' : 'error');
       if (window.__initCastController) {
         window.__initCastController();
       }
@@ -62,7 +48,7 @@
   <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="./styles.css?v=11">
+  <link rel="stylesheet" href="./styles.css?v=12">
 </head>
 <body>
 
@@ -609,7 +595,7 @@
   <!-- Tijdelijke On-Screen Debug Console -->
   <div id="castDebugBar" class="cast-debug-bar">
     <div class="cast-debug-header" id="castDebugToggle">
-      <span class="cast-debug-title">🐞 Cast Log v3.12 (<span id="castDebugCount">0</span>)</span>
+      <span class="cast-debug-title">🐞 Cast Log v3.13 (<span id="castDebugCount">0</span>)</span>
       <div class="cast-debug-actions">
         <button id="copyDebugLogsBtn" class="debug-btn" type="button">Kopieer</button>
         <button id="clearDebugLogsBtn" class="debug-btn" type="button">Wis</button>
@@ -621,7 +607,7 @@
   </div>
 
   <!-- Main Application Entry Script -->
-  <script type="module" src="./js/app.js?v=15"></script>
+  <script type="module" src="./js/app.js?v=16"></script>
 
 </body>
 </html>

@@ -61,10 +61,8 @@ export class CastController {
     try {
       this.context = cast.framework.CastContext.getInstance();
       this.context.setOptions({
-        receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID || 'CC1AD845',
-        autoJoinPolicy: chrome.cast.AutoJoinPolicy ? chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED : 'origin_scoped',
-        androidReceiverCompatible: true,
-        resumeSavedSession: true
+        receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
       });
 
       this.remotePlayer = new cast.framework.RemotePlayer();
@@ -168,57 +166,40 @@ export class CastController {
 
   /** Moet synchroon vanuit een klik-handler aangeroepen worden */
   requestSession() {
-    if (this.isRequestingSession) {
-      if (window.debugLog) window.debugLog('requestSession() genegeerd: al een aanvraag actief', 'warn');
-      return;
-    }
-
     if (window.debugLog) window.debugLog('requestSession() aangeroepen (CastState=' + this.castState + ')', 'info');
 
-    if (!this.context && window.cast && window.cast.framework) {
-      this.init();
+    if (!this.context) {
+      if (window.cast && window.cast.framework) {
+        this.init();
+      }
     }
 
-    if (this.context) {
-      if (this.isConnected()) {
-        if (window.debugLog) window.debugLog('Al verbonden, sessie wordt verbroken...', 'warn');
-        this.context.endCurrentSession(true);
-        return;
-      }
-
-      this.isRequestingSession = true;
-      const timeoutId = setTimeout(() => {
-        if (this.isRequestingSession) {
-          this.isRequestingSession = false;
-          if (window.debugLog) window.debugLog('Cast selectie time-out na 12s: lock hersteld', 'warn');
-        }
-      }, 12000);
-
-      this.context.requestSession()
-        .then(() => {
-          clearTimeout(timeoutId);
-          this.isRequestingSession = false;
-          console.log('Cast sessie geopend');
-          if (window.debugLog) window.debugLog('requestSession() resolved (apparaat gekozen)', 'success');
-        })
-        .catch((err) => {
-          clearTimeout(timeoutId);
-          this.isRequestingSession = false;
-          if (err === 'cancel') {
-            console.log('Cast sessie selectie geannuleerd door gebruiker');
-            if (window.debugLog) window.debugLog('Cast selectiedialoog gesloten (geen apparaat gekozen)', 'warn');
-          } else {
-            console.warn('Cast sessie mislukt of afgewezen:', err);
-            const errDetail = (typeof err === 'object') ? JSON.stringify(err) : String(err);
-            if (window.debugLog) window.debugLog('requestSession FOUT: ' + errDetail, 'error');
-            // Bij een actieve Google Cast SDK roepen we GEEN conflicterende remote.prompt() aan
-          }
-        });
+    if (!this.context) {
+      if (window.debugLog) window.debugLog('CastContext niet beschikbaar', 'error');
       return;
     }
 
-    // Alleen als CastContext geheel niet beschikbaar is op dit platform
-    this.tryRemotePlaybackPrompt();
+    if (this.isConnected()) {
+      if (window.debugLog) window.debugLog('Al verbonden, sessie wordt verbroken...', 'warn');
+      this.context.endCurrentSession(true);
+      return;
+    }
+
+    this.context.requestSession()
+      .then(() => {
+        console.log('Cast sessie geopend');
+        if (window.debugLog) window.debugLog('requestSession() resolved (apparaat gekozen)', 'success');
+      })
+      .catch((err) => {
+        if (err === 'cancel') {
+          console.log('Cast sessie selectie geannuleerd');
+          if (window.debugLog) window.debugLog('Cast selectie geannuleerd door gebruiker', 'warn');
+        } else {
+          console.warn('Cast sessie mislukt:', err);
+          const errDetail = (typeof err === 'object') ? JSON.stringify(err) : String(err);
+          if (window.debugLog) window.debugLog('requestSession FOUT: ' + errDetail, 'error');
+        }
+      });
   }
 
   tryRemotePlaybackPrompt() {
