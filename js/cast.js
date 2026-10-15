@@ -62,7 +62,8 @@ export class CastController {
       this.context = cast.framework.CastContext.getInstance();
       this.context.setOptions({
         receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
-        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
+        androidReceiverCompatible: true
       });
 
       this.remotePlayer = new cast.framework.RemotePlayer();
